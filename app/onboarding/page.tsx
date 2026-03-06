@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Briefcase, Clock3, Loader2, Phone, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,7 @@ const roleOptions = [
   { id: 'candidate', label: 'Candidate' },
 ] as const;
 
-export default function OnboardingPage() {
+function OnboardingPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isLoading, refreshUser } = useAuth();
@@ -200,5 +200,13 @@ export default function OnboardingPage() {
         </form>
       </div>
     </main>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <OnboardingPageContent />
+    </Suspense>
   );
 }

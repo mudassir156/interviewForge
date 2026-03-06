@@ -1,6 +1,6 @@
 'use client';
 
-import { ChangeEvent, useEffect, useRef, useState } from 'react';
+import { ChangeEvent, Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
@@ -36,7 +36,7 @@ const tabs = [
 
 const validTabs = new Set(tabs.map((tab) => tab.id));
 
-export default function SettingsPage() {
+function SettingsPageContent() {
   const { user, refreshUser } = useAuth();
   const searchParams = useSearchParams();
   const { setTheme: applyTheme } = useTheme();
@@ -674,5 +674,13 @@ export default function SettingsPage() {
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SettingsPageContent />
+    </Suspense>
   );
 }

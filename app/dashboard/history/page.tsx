@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -36,7 +36,7 @@ const languageColors: Record<string, string> = {
   rust: 'from-orange-600 to-amber-600',
 };
 
-export default function HistoryPage() {
+function HistoryPageContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const [sortBy, setSortBy] = useState<'date' | 'duration'>('date');
@@ -348,6 +348,14 @@ export default function HistoryPage() {
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+export default function HistoryPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <HistoryPageContent />
+    </Suspense>
   );
 }
 

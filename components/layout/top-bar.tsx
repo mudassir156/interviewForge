@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { FormEvent, Suspense, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Menu, Bell, Search } from 'lucide-react';
 import Link from 'next/link';
@@ -18,7 +18,7 @@ interface TopBarProps {
   onMenuClick: () => void;
 }
 
-export function TopBar({ onMenuClick }: TopBarProps) {
+function TopBarContent({ onMenuClick }: TopBarProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -155,3 +155,10 @@ export function TopBar({ onMenuClick }: TopBarProps) {
   );
 }
 
+export function TopBar(props: TopBarProps) {
+  return (
+    <Suspense fallback={<header className="sticky top-0 z-40 h-14 border-b border-border bg-background/80" />}>
+      <TopBarContent {...props} />
+    </Suspense>
+  );
+}

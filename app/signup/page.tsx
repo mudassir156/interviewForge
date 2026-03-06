@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Code2, Lock, Mail, User, ArrowRight, CheckCircle2, Sparkles, Loader2 } from 'lucide-react';
@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 
-export default function SignupPage() {
+function SignupPageContent() {
   const { register } = useAuth();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '';
@@ -184,5 +184,13 @@ export default function SignupPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignupPageContent />
+    </Suspense>
   );
 }

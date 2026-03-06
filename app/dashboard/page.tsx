@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -39,7 +39,7 @@ const languageColors: Record<string, string> = {
   rust: 'from-orange-600 to-amber-600',
 };
 
-export default function DashboardPage() {
+function DashboardPageContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
@@ -469,6 +469,14 @@ export default function DashboardPage() {
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <DashboardPageContent />
+    </Suspense>
   );
 }
 
