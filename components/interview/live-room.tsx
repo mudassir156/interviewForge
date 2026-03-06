@@ -54,9 +54,57 @@ type RoomParticipant = {
   hasAudio?: boolean;
 };
 
+const isSameParticipant = (a: RoomParticipant, b: RoomParticipant) => {
+  if (a.id && b.id) {
+    return a.id === b.id;
+  }
+
+  if (a.userId && b.userId) {
+    return a.userId === b.userId;
+  }
+
+  // Fallback only when neither side has a stable identifier.
+  return !a.id && !b.id && !a.userId && !b.userId && a.name === b.name && a.role === b.role;
+};
+
+const getGuestIdentity = () => {
+  const storageKey = 'interviewForge.guestIdentity';
+
+  try {
+    const existing = window.sessionStorage.getItem(storageKey);
+    if (existing) {
+      const parsed = JSON.parse(existing);
+      if (parsed?.id && parsed?.name) {
+        return {
+          id: String(parsed.id),
+          name: String(parsed.name),
+          avatar: typeof parsed.avatar === 'string' ? parsed.avatar : undefined,
+        };
+      }
+    }
+  } catch (error) {
+    console.warn('[v0] Failed to read guest identity:', error);
+  }
+
+  const randomSuffix = Math.floor(Math.random() * 9000 + 1000);
+  const identity = {
+    id: `guest-${Date.now()}-${randomSuffix}`,
+    name: `Guest ${randomSuffix}`,
+    avatar: undefined,
+  };
+
+  try {
+    window.sessionStorage.setItem(storageKey, JSON.stringify(identity));
+  } catch (error) {
+    console.warn('[v0] Failed to store guest identity:', error);
+  }
+
+  return identity;
+};
+
 export function LiveRoom({ roomId }: LiveRoomProps) {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const [copied, setCopied] = useState(false);
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [roomLoading, setRoomLoading] = useState(true);
@@ -99,12 +147,32 @@ export function LiveRoom({ roomId }: LiveRoomProps) {
 
   // Join socket room
   useEffect(() => {
-    if (!user) return;
+    if (isLoading) {
+      return;
+    }
+
     initSocket();
+
+    const identity: {
+      id: string;
+      name: string;
+      avatar?: string;
+      role: RoomParticipant['role'];
+    } = user
+      ? {
+          id: user.id,
+          name: user.name,
+          avatar: user.avatar,
+          role: user.role === 'candidate' ? 'candidate' : 'interviewer',
+        }
+      : {
+          ...getGuestIdentity(),
+          role: 'candidate',
+        };
 
     setParticipants((previous) => {
       const exists = previous.some(
-        (participant) => participant.userId === user.id || participant.name === user.name
+        (participant) => participant.userId === identity.id || participant.name === identity.name
       );
       if (exists) {
         return previous;
@@ -112,10 +180,10 @@ export function LiveRoom({ roomId }: LiveRoomProps) {
       return [
         ...previous,
         {
-          userId: user.id,
-          name: user.name,
-          avatar: user.avatar,
-          role: user.role === 'candidate' ? 'candidate' : 'interviewer',
+          userId: identity.id,
+          name: identity.name,
+          avatar: identity.avatar,
+          role: identity.role,
           isActive: true,
           hasAudio: true,
           hasVideo: false,
@@ -144,11 +212,7 @@ export function LiveRoom({ roomId }: LiveRoomProps) {
     const handleParticipantJoin = (data: any) => {
       const participant = normalizeParticipant(data.participant || data);
       setParticipants((previous) => {
-        const existingIndex = previous.findIndex(
-          (item) => (item.id && item.id === participant.id)
-            || (item.userId && item.userId === participant.userId)
-            || item.name === participant.name
-        );
+        const existingIndex = previous.findIndex((item) => isSameParticipant(item, participant));
 
         if (existingIndex === -1) {
           return [...previous, participant];
@@ -174,11 +238,7 @@ export function LiveRoom({ roomId }: LiveRoomProps) {
     const handleParticipantUpdate = (data: any) => {
       const incoming = normalizeParticipant(data.participant || data);
       setParticipants((previous) => {
-        const index = previous.findIndex(
-          (participant) => (participant.id && participant.id === incoming.id)
-            || (participant.userId && participant.userId === incoming.userId)
-            || participant.name === incoming.name
-        );
+        const index = previous.findIndex((participant) => isSameParticipant(participant, incoming));
 
         if (index === -1) {
           return [...previous, incoming];
@@ -191,14 +251,14 @@ export function LiveRoom({ roomId }: LiveRoomProps) {
     };
 
     const handleRoomClose = () => {
-      router.push('/dashboard/history');
+      router.push(user ? '/dashboard/history' : '/');
     };
 
     const joinRoom = () => {
       emit('room:join', {
         roomId,
-        user: { id: user.id, name: user.name, avatar: user.avatar },
-        role: user.role ?? 'interviewer',
+        user: { id: identity.id, name: identity.name, avatar: identity.avatar },
+        role: identity.role,
       });
     };
 
@@ -226,7 +286,7 @@ export function LiveRoom({ roomId }: LiveRoomProps) {
       off('connect', handleSocketConnect);
       emit('room:leave', { roomId });
     };
-  }, [roomId, router, user]);
+  }, [isLoading, roomId, router, user]);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(`${window.location.origin}/interview/${roomId}`);
@@ -236,6 +296,14 @@ export function LiveRoom({ roomId }: LiveRoomProps) {
 
   const handleEndSession = async () => {
     if (isEndingSession) return;
+
+    // Guests can leave the room but should not update room history status.
+    if (!user) {
+      leaveVoice();
+      emit('room:leave', { roomId });
+      router.push('/');
+      return;
+    }
 
     setIsEndingSession(true);
     try {

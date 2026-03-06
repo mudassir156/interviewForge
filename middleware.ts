@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // Routes that require authentication
-const PROTECTED_PREFIXES = ['/dashboard', '/interview', '/onboarding'];
+const PROTECTED_PREFIXES = ['/dashboard', '/onboarding'];
 
 // Routes that logged-in users should NOT visit (redirect to dashboard)
 const AUTH_ROUTES = ['/login', '/signup'];

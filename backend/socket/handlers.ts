@@ -1,4 +1,5 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
+import { isValidObjectId } from 'mongoose';
 import { connectDB } from '../config/mongodb';
 import { Interview } from '../models/Interview';
 import { Message } from '../models/Message';
@@ -39,7 +40,7 @@ export function setupSocketHandlers(io: SocketIOServer) {
         socket.join(roomId);
 
         await connectDB();
-        if (user?.id) {
+        if (user?.id && isValidObjectId(user.id)) {
           await Interview.findOneAndUpdate(
             { roomId },
             { $addToSet: { participants: user.id } },
