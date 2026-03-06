@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { CodeEditor } from '@/components/interview/code-editor';
@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Code2 } from 'lucide-react';
 
-export default function CodeExecutionPage() {
+function CodeExecutionContent() {
   const { user } = useAuth();
   const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
@@ -57,5 +57,13 @@ export default function CodeExecutionPage() {
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+export default function CodeExecutionPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CodeExecutionContent />
+    </Suspense>
   );
 }
